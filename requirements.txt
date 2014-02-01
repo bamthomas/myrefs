@@ -1,2 +1,6 @@
 feedparser
 elasticsearch
+flask
+werkzeug
+# testing
+flask-testing

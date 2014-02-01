@@ -7,28 +7,28 @@ var app = app || {};
     });
 
     var RssFeeds = Backbone.Collection.extend({
-        model: RssFeed
+        model: RssFeed,
+        url: '/rssfeeds'
     });
 
     app.RssView = Backbone.View.extend({
         el: $('#rss'),
         initialize: function () {
             _.bindAll(this, 'render', 'appendRssFeed');
-
-            this.rssList = new RssFeeds();
-            this.rssList.url = '/rssfeeds';
-            this.rssList.fetch();
-
-            this.render();
+            this.model = new RssFeeds();
+            this.model.bind('reset',this.render);
+            this.model.fetch({reset: true});
         },
         appendRssFeed: function (rssFeed) {
             $('ul', this.el).append("<li>" + rssFeed.get('url') + "</li>");
         },
         render: function () {
             $(this.el).append("<ul></ul>");
-            _(this.rssList.models).each(function (rssFeed) {
+            var self = this;
+            _(this.model.models).each(function (rssFeed) {
                 self.appendRssFeed(rssFeed);
             }, this);
+            return this;
         }
     });
     new app.RssView();
