@@ -11,12 +11,32 @@ var app = app || {};
         url: '/rssfeeds'
     });
 
+    var MyRefsRouter = Backbone.Router.extend({
+        routes: {
+            '': function() {
+                $("#marks").hide();
+                $("#rss").hide();
+            },
+            'rss': function() {
+                $("#marks").hide();
+                $("#rss").show();
+            },
+            'marks': function() {
+                $("#rss").hide();
+                $("#marks").show();
+            }
+        }
+    });
+
+    var appRouter = new MyRefsRouter();
+    Backbone.history.start();
+
     app.RssView = Backbone.View.extend({
         el: $('#rss'),
         initialize: function () {
             _.bindAll(this, 'render', 'appendRssFeed');
             this.model = new RssFeeds();
-            this.model.bind('reset',this.render);
+            this.model.bind('reset', this.render);
             this.model.fetch({reset: true});
         },
         appendRssFeed: function (rssFeed) {
