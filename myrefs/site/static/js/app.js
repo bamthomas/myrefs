@@ -14,15 +14,14 @@ var app = app || {};
     var MyRefsRouter = Backbone.Router.extend({
         routes: {
             '': function() {
-                $("#marks").hide();
-                $("#rss").hide();
+                $(".content").hide();
             },
             'rss': function() {
-                $("#marks").hide();
+                $(".content").hide();
                 $("#rss").show();
             },
             'marks': function() {
-                $("#rss").hide();
+                $(".content").hide();
                 $("#marks").show();
             }
         }

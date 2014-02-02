@@ -1,6 +1,7 @@
 feedparser
 elasticsearch
 flask
+pymongo
 werkzeug
 # testing
-flask-testing
+#flask-testing
