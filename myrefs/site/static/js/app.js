@@ -4,6 +4,7 @@ var app = app || {};
     'use strict';
 
     var RssFeed = Backbone.Model.extend({
+        url: '/rssfeed'
     });
 
     var RssFeeds = Backbone.Collection.extend({
@@ -32,8 +33,12 @@ var app = app || {};
 
     app.RssView = Backbone.View.extend({
         el: $('#rss'),
+        events: {
+            "click .new-rss-btn": "addRssFeed"
+        },
         initialize: function () {
             _.bindAll(this, 'render', 'appendRssFeed');
+            this.$new_feed_input = $('#new_feed_input');
             this.model = new RssFeeds();
             this.model.bind('reset', this.render);
             this.model.fetch({reset: true});
@@ -48,6 +53,15 @@ var app = app || {};
                 self.appendRssFeed(rssFeed);
             }, this);
             return this;
+        },
+        addRssFeed: function (e) {
+            var url = this.$new_feed_input.val().trim();
+            if (url !== '') {
+                var newRssFeed = new RssFeed();
+                newRssFeed.set({'url': url});
+                this.model.create(newRssFeed);
+                this.$new_feed_input.val('');
+            }
         }
     });
     new app.RssView();
