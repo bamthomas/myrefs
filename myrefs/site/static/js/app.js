@@ -4,7 +4,7 @@ var app = app || {};
     'use strict';
 
     var RssFeed = Backbone.Model.extend({
-        url: '/rssfeed'
+        url: '/rssfeeds'
     });
 
     var RssFeeds = Backbone.Collection.extend({

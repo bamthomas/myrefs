@@ -32,25 +32,17 @@ class RssFeedsResource(resource.Resource):
         request.setHeader('Content-Type', 'application/json; charset=utf-8')
         return json.dumps(rssfeeds)
 
-
-class RssFeedResource(resource.Resource):
-    isLeaf = True
-
-    def __init__(self, rss_feeds):
-        resource.Resource.__init__(self)
-        self.rss_feeds = rss_feeds
-
     def render_POST(self, request):
         rss_feed = json.loads(request.content.getvalue())
         self.rss_feeds.insert_feed('bruno', rss_feed)
         request.setResponseCode(200)
         return ''
 
+
 startLogging(prefix='myrefs')
 rss_feeds = RssFeeds()
 root = Resource()
 root.putChild('rssfeeds', RssFeedsResource(rss_feeds))
-root.putChild('rssfeed', RssFeedResource(rss_feeds))
 root.putChild('', File('static'))
 reactor.listenTCP(8080, server.Site(root))
 reactor.run()
