@@ -14,9 +14,6 @@ var app = app || {};
 
     var MyRefsRouter = Backbone.Router.extend({
         routes: {
-            '': function() {
-                $(".content").hide();
-            },
             'rss': function() {
                 $(".content").hide();
                 $("#rss").show();
@@ -30,7 +27,7 @@ var app = app || {};
 
     var appRouter = new MyRefsRouter();
     Backbone.history.start();
-
+    appRouter.navigate('rss', {trigger: true});
     app.RssView = Backbone.View.extend({
         el: $('#rss'),
         events: {
