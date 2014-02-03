@@ -1,6 +1,10 @@
 import json
-from flask import request, Flask, render_template, Response, current_app
+from twisted.python.syslog import startLogging
+from twisted.web import server, resource
+from twisted.internet import reactor
 from pymongo.mongo_client import MongoClient
+from twisted.web.resource import Resource
+from twisted.web.static import File
 
 
 class RssFeeds(object):
@@ -16,26 +20,37 @@ class RssFeeds(object):
         self.userfeeds.update({'user': user}, {'$push': {'rssfeeds': feed_as_dict}})
 
 
-def create_app():
-    app = Flask(__name__)
-    app.config['mongo_rss_feeds'] = RssFeeds()
-    return app
+class RssFeedsResource(resource.Resource):
+    isLeaf = True
 
-app = create_app()
+    def __init__(self, rss_feeds):
+        resource.Resource.__init__(self)
+        self.rss_feeds = rss_feeds
 
-@app.route("/")
-def index():
-    return render_template("index.html")
+    def render_GET(self, request):
+        rssfeeds = self.rss_feeds.get_feeds('bruno')
+        request.setHeader('Content-Type', 'application/json; charset=utf-8')
+        return json.dumps(rssfeeds)
 
-@app.route("/rssfeeds")
-def rss_feeds():
-    rssfeeds = current_app.config['mongo_rss_feeds'].get_feeds('bruno')
-    return Response(json.dumps(rssfeeds),  mimetype='application/json')
 
-@app.route("/rssfeed", methods=["POST"])
-def new_rss_feed():
-    current_app.config['mongo_rss_feeds'].insert_feed('bruno', request.get_json())
-    return Response(status=200)
+class RssFeedResource(resource.Resource):
+    isLeaf = True
 
-if __name__ == "__main__":
-    app.run()
+    def __init__(self, rss_feeds):
+        resource.Resource.__init__(self)
+        self.rss_feeds = rss_feeds
+
+    def render_POST(self, request):
+        rss_feed = json.loads(request.content.getvalue())
+        self.rss_feeds.insert_feed('bruno', rss_feed)
+        request.setResponseCode(200)
+        return ''
+
+startLogging(prefix='myrefs')
+rss_feeds = RssFeeds()
+root = Resource()
+root.putChild('rssfeeds', RssFeedsResource(rss_feeds))
+root.putChild('rssfeed', RssFeedResource(rss_feeds))
+root.putChild('', File('static'))
+reactor.listenTCP(8080, server.Site(root))
+reactor.run()

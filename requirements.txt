@@ -1,7 +1,5 @@
 feedparser
 elasticsearch
-flask
+twisted
 pymongo
-werkzeug
 # testing
-#flask-testing
