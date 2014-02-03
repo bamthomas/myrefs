@@ -29,8 +29,19 @@
 
 <div id="page" class="container">
     <div id="rss" class="content">
-        <input id="new_feed_input" placeholder="S'abonner au flux" autofocus>
-        <button type="button" class="btn btn-primary new-rss-btn" data-toggle="button">OK</button>
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="input-group">
+                    <input type="text" id="new_feed_input" placeholder="S'abonner au flux" class="form-control">
+                        <span class="input-group-btn">
+                           <button type="button" class="new-rss-btn btn btn-primary">OK</button>
+                       </span>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div id="rssfeeds"></div>
+        </div>
     </div>
     <div id="marks" class="content">Mes marks</div>
 </div>

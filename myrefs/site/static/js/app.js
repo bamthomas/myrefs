@@ -44,7 +44,7 @@ var app = app || {};
             $('ul', this.el).append("<li>" + rssFeed.get('url') + "</li>");
         },
         render: function () {
-            $(this.el).append("<ul></ul>");
+            $(this.el).find('#rssfeeds').append("<ul></ul>");
             var self = this;
             _(this.model.models).each(function (rssFeed) {
                 self.appendRssFeed(rssFeed);
