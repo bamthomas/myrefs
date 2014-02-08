@@ -42,19 +42,10 @@ class RssFeedsResource(resource.Resource):
     def render_POST(self, add_feed_request):
         rss_feed_url = json.loads(add_feed_request.content.getvalue())['url']
 
-        agent = Agent(reactor)
-        d = agent.request('GET', rss_feed_url.encode('utf-8'), Headers({'User-Agent': ['MyRefs']}), None)
-
-        def response_received(rss_response):
-            finished = Deferred()
-            rss_response.deliverBody(RssParserProtocol(finished, self.rss_feeds, rss_feed_url))
-            return finished
-
         def finish_request(_):
             add_feed_request.finish()
 
-        d.addCallback(response_received)
-        d.addErrback(error)
+        d = RssParserProtocol(self.rss_feeds).run(rss_feed_url)
         d.addCallback(finish_request)
         d.addErrback(error)
 
@@ -62,22 +53,32 @@ class RssFeedsResource(resource.Resource):
 
 
 class RssParserProtocol(Protocol):
-    def __init__(self, finished, rss_feed_repository, rss_feed_url):
-        self.finished = finished
+    def __init__(self, rss_feed_repository):
+        self.agent = Agent(reactor)
+        self.finished = Deferred()
         self.buffer = StringIO()
         self.rss_feed_repository = rss_feed_repository
-        self.rss_feed_url = rss_feed_url
 
-        finished.addCallback(self.parse_feed)
-        finished.addErrback(error)
-        finished.addCallback(self.store_feed_info)
-        finished.addErrback(error)
+        self.finished.addCallback(self.parse_feed)
+        self.finished.addErrback(error)
+        self.finished.addCallback(self.store_feed_info)
+        self.finished.addErrback(error)
+
+    def run(self, rss_feed_url):
+        self.rss_feed_url = rss_feed_url
+        deferred = self.agent.request('GET', rss_feed_url.encode('utf-8'),Headers({'User-Agent': ['MyRefs']}), None)
+        deferred.addCallback(self.response_received)
+        return deferred
 
     def dataReceived(self, data):
         self.buffer.write(data)
 
     def connectionLost(self, reason=connectionDone):
         self.finished.callback(self.buffer.getvalue())
+
+    def response_received(self, rss_response):
+        rss_response.deliverBody(self)
+        return self.finished
 
     def parse_feed(self, xmlfeed):
         return feedparser.parse(xmlfeed)
