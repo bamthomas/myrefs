@@ -47,41 +47,52 @@ class RssFeedsResource(resource.Resource):
 
         def response_received(rss_response):
             finished = Deferred()
-            rss_response.deliverBody(RssParserProtocol(finished))
+            rss_response.deliverBody(RssParserProtocol(finished, self.rss_feeds, rss_feed_url))
             return finished
 
-        def parse_feed(xmlfeed):
-            return feedparser.parse(xmlfeed)
-
-        def store_feed_info(rss):
-            self.rss_feeds.insert_feed('bruno', {'url': rss_feed_url, 'main_url': rss.feed.link,
-                                                 'title': rss.feed.title})
+        def finish_request(_):
             add_feed_request.finish()
-            return None
-
-        def error(traceback):
-            print traceback
 
         d.addCallback(response_received)
         d.addErrback(error)
-        d.addCallback(parse_feed)
-        d.addErrback(error)
-        d.addCallback(store_feed_info)
+        d.addCallback(finish_request)
         d.addErrback(error)
 
         return NOT_DONE_YET
 
 
 class RssParserProtocol(Protocol):
-    def __init__(self, finished):
+    def __init__(self, finished, rss_feed_repository, rss_feed_url):
         self.finished = finished
         self.buffer = StringIO()
+        self.rss_feed_repository = rss_feed_repository
+        self.rss_feed_url = rss_feed_url
+
+        finished.addCallback(self.parse_feed)
+        finished.addErrback(error)
+        finished.addCallback(self.store_feed_info)
+        finished.addErrback(error)
 
     def dataReceived(self, data):
         self.buffer.write(data)
 
     def connectionLost(self, reason=connectionDone):
+        print "connection lost"
         self.finished.callback(self.buffer.getvalue())
+
+    def parse_feed(self, xmlfeed):
+        print "parse feed"
+        return feedparser.parse(xmlfeed)
+
+    def store_feed_info(self, rss):
+        print "store feed"
+        self.rss_feed_repository.insert_feed('bruno', {'url': self.rss_feed_url, 'main_url': rss.feed.link,'title': rss.feed.title})
+        return None
+
+def error(traceback):
+    print traceback
+
+
 
 startLogging(prefix='myrefs')
 rss_feeds = RssFeedsRepository()
