@@ -77,22 +77,18 @@ class RssParserProtocol(Protocol):
         self.buffer.write(data)
 
     def connectionLost(self, reason=connectionDone):
-        print "connection lost"
         self.finished.callback(self.buffer.getvalue())
 
     def parse_feed(self, xmlfeed):
-        print "parse feed"
         return feedparser.parse(xmlfeed)
 
     def store_feed_info(self, rss):
-        print "store feed"
         self.rss_feed_repository.insert_feed('bruno', {'url': self.rss_feed_url, 'main_url': rss.feed.link,'title': rss.feed.title})
         return None
 
+
 def error(traceback):
     print traceback
-
-
 
 startLogging(prefix='myrefs')
 rss_feeds = RssFeedsRepository()
