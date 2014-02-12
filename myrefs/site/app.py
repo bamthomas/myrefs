@@ -45,20 +45,20 @@ class RssFeedsResource(resource.Resource):
         def finish_request(_):
             add_feed_request.finish()
 
-        d = RssParserProtocol(self.rss_feeds).run(rss_feed_url)
+        d = RssAgent(reactor, self.rss_feeds).run(rss_feed_url)
         d.addCallback(finish_request)
         d.addErrback(error)
 
         return NOT_DONE_YET
 
 
-class RssParserProtocol(Protocol):
-    def __init__(self, rss_feed_repository):
+class RssAgent(Agent):
+    def __init__(self, reactor, rss_feed_repository):
+        super(RssAgent, self).__init__(reactor)
         self.agent = Agent(reactor)
         self.finished = Deferred()
         self.buffer = StringIO()
         self.rss_feed_repository = rss_feed_repository
-
         self.finished.addCallback(self.parse_feed)
         self.finished.addErrback(error)
         self.finished.addCallback(self.store_feed_info)
@@ -66,7 +66,7 @@ class RssParserProtocol(Protocol):
 
     def run(self, rss_feed_url):
         self.rss_feed_url = rss_feed_url
-        deferred = self.agent.request('GET', rss_feed_url.encode('utf-8'),Headers({'User-Agent': ['MyRefs']}), None)
+        deferred = self.request('GET', rss_feed_url.encode('utf-8'),Headers({'User-Agent': ['MyRefs']}), None)
         deferred.addCallback(self.response_received)
         return deferred
 
