@@ -63,29 +63,42 @@ class RssAgent(Agent):
         self.finished.addErrback(error)
         self.finished.addCallback(self.store_feed_info)
         self.finished.addErrback(error)
+        self.rss_feed_repository = rss_feed_repository
 
     def run(self, rss_feed_url):
         self.rss_feed_url = rss_feed_url
         deferred = self.request('GET', rss_feed_url.encode('utf-8'),Headers({'User-Agent': ['MyRefs']}), None)
         deferred.addCallback(self.response_received)
+        deferred.addErrback(error)
+        deferred.addCallback(self.parse_feed)
+        deferred.addErrback(error)
+        deferred.addCallback(self.store_feed_info)
+        deferred.addErrback(error)
         return deferred
+
+    def response_received(self, rss_response):
+        finished = Deferred()
+        rss_response.deliverBody(RssParserProtocol(finished))
+        return finished
+
+    def parse_feed(self, xmlfeed):
+        return feedparser.parse(xmlfeed)
+
+    def store_feed_info(self, rss):
+        self.rss_feed_repository.insert_feed('bruno', {'url': self.rss_feed_url, 'main_url': rss.feed.link, 'title': rss.feed.title})
+        return None
+
+
+class RssParserProtocol(Protocol):
+    def __init__(self, finished):
+        self.finished = finished
+        self.buffer = StringIO()
 
     def dataReceived(self, data):
         self.buffer.write(data)
 
     def connectionLost(self, reason=connectionDone):
         self.finished.callback(self.buffer.getvalue())
-
-    def response_received(self, rss_response):
-        rss_response.deliverBody(self)
-        return self.finished
-
-    def parse_feed(self, xmlfeed):
-        return feedparser.parse(xmlfeed)
-
-    def store_feed_info(self, rss):
-        self.rss_feed_repository.insert_feed('bruno', {'url': self.rss_feed_url, 'main_url': rss.feed.link,'title': rss.feed.title})
-        return None
 
 
 def error(traceback):
