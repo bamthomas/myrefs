@@ -1,6 +1,7 @@
 from StringIO import StringIO
 import json
 import feedparser
+from tornado.web import asynchronous
 from twisted.internet.defer import Deferred
 from twisted.internet.protocol import Protocol, connectionDone
 from twisted.python.syslog import startLogging
@@ -67,7 +68,7 @@ class RssAgent(Agent):
 
     def run(self, rss_feed_url):
         self.rss_feed_url = rss_feed_url
-        deferred = self.request('GET', rss_feed_url.encode('utf-8'),Headers({'User-Agent': ['MyRefs']}), None)
+        deferred = self.request('GET', rss_feed_url.encode('utf-8'), Headers({'User-Agent': ['MyRefs']}), None)
         deferred.addCallback(self.response_received)
         deferred.addErrback(error)
         deferred.addCallback(self.parse_feed)

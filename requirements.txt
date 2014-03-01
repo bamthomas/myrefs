@@ -1,5 +1,6 @@
 feedparser
 elasticsearch
+tornado
 twisted
 pymongo
 # testing
