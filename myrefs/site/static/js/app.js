@@ -14,11 +14,11 @@ var app = app || {};
 
     var MyRefsRouter = Backbone.Router.extend({
         routes: {
-            'rss': function() {
+            'rss': function () {
                 $(".content").hide();
                 $("#rss").show();
             },
-            'marks': function() {
+            'marks': function () {
                 $(".content").hide();
                 $("#marks").show();
             }
@@ -41,7 +41,7 @@ var app = app || {};
             this.model.fetch({reset: true});
         },
         appendRssFeed: function (rssFeed) {
-            $('ul', this.el).append("<li><a href='" + rssFeed.get('main_url') + "'>" + rssFeed.get('title') + "<span class='badge alert-danger'>" + rssFeed.get('entries') + "</span></a></li>");
+            $('ul', this.el).append("<li><a href='" + rssFeed.get('main_url') + "'>" + rssFeed.get('title') + "</a></li>");
         },
         render: function () {
             $(this.el).find('#rssfeeds').append("<ul></ul>");
@@ -49,6 +49,7 @@ var app = app || {};
             _(this.model.models).each(function (rssFeed) {
                 self.appendRssFeed(rssFeed);
             }, this);
+            self.updateFeeds();
             return this;
         },
         addRssFeed: function (e) {
@@ -59,6 +60,18 @@ var app = app || {};
                 this.model.create(newRssFeed);
                 this.$new_feed_input.val('');
             }
+        },
+        updateFeeds: function () {
+            var source = new EventSource('/rssfeeds/update');
+            source.onmessage = function (msg) {
+                var feedupdates = JSON.parse(msg.data);
+                $('#rssfeeds').find('a[href="' + feedupdates.url + '"]').
+                    append("<span class='badge alert-danger'>" + feedupdates.entries + "</span>");
+            };
+            source.addEventListener('close', function () {
+                console.log("closing feeds update");
+                this.close();
+            }, false);
         }
     });
     new app.RssView();

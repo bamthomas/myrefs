@@ -30,24 +30,10 @@ class RssFeedsHandler(tornado.web.RequestHandler):
     def initialize(self, rss_feeds):
         self.rss_feeds = rss_feeds
 
-    @asynchronous
     def get(self):
         rssfeeds = self.rss_feeds.get_feeds('bruno')
         self.set_header('Content-Type', 'application/json; charset=utf-8')
-        self.pending_feed_requests = len(rssfeeds)
-        for feed in rssfeeds:
-            AsyncHTTPClient().fetch(feed['url'], callback=partial(self.handle_feed_check, feed))
-        self.write('[')
-
-    def handle_feed_check(self, rss_feed, response):
-        rss = feedparser.parse(response.body)
-        self.pending_feed_requests -= 1
-        rss_feed.update({'entries': len(rss.entries)})
-        self.write(json.dumps(rss_feed))
-        if self.pending_feed_requests != 0:
-            self.write(', ')
-        else:
-            self.finish(']')
+        self.write(json.dumps(rssfeeds))
 
     @asynchronous
     def post(self, *args, **kwargs):
@@ -59,9 +45,32 @@ class RssFeedsHandler(tornado.web.RequestHandler):
         self.rss_feeds.insert_feed('bruno', {'url': rss_feed_url, 'main_url': rss.feed.link, 'title': rss.feed.title})
 
 
+class CheckRssFeedsHandlder(tornado.web.RequestHandler):
+    def initialize(self, rss_feeds):
+        self.rss_feeds = rss_feeds
+        self.set_header('Content-Type', 'text/event-stream')
+        self.set_header('Cache-Control', 'no-cache')
+
+    @asynchronous
+    def get(self):
+        rssfeeds = self.rss_feeds.get_feeds('bruno')
+        self.pending_feed_requests = len(rssfeeds)
+        for feed in rssfeeds:
+            AsyncHTTPClient().fetch(feed['url'], callback=partial(self.handle_feed_check, feed))
+
+    def handle_feed_check(self, rss_feed, response):
+        rss = feedparser.parse(response.body)
+        self.pending_feed_requests -= 1
+        self.write('data: %s' % json.dumps({'url': rss_feed['main_url'], 'entries': len(rss.entries)}))
+        self.write('\n\n')
+        if self.pending_feed_requests == 0:
+            self.write('event: close\ndata:\n\n')
+            self.flush()
+
 application = tornado.web.Application([
     (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': os.path.join(os.getcwd() + '/static')}),
     (r'/rssfeeds', RssFeedsHandler, {'rss_feeds': RssFeedsRepository()}),
+    (r'/rssfeeds/update', CheckRssFeedsHandlder, {'rss_feeds': RssFeedsRepository()}),
 ])
 
 if __name__ == "__main__":
