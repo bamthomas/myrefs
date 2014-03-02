@@ -1,7 +1,6 @@
 from StringIO import StringIO
 import json
 import feedparser
-from tornado.web import asynchronous
 from twisted.internet.defer import Deferred
 from twisted.internet.protocol import Protocol, connectionDone
 from twisted.python.syslog import startLogging

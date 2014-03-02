@@ -41,7 +41,7 @@ var app = app || {};
             this.model.fetch({reset: true});
         },
         appendRssFeed: function (rssFeed) {
-            $('ul', this.el).append("<li><a href='" + rssFeed.get('main_url') + "'>" + rssFeed.get('title') + "</a></li>");
+            $('ul', this.el).append("<li><a href='" + rssFeed.get('main_url') + "'>" + rssFeed.get('title') + "<span class='badge alert-danger'>" + rssFeed.get('entries') + "</span></a></li>");
         },
         render: function () {
             $(this.el).find('#rssfeeds').append("<ul></ul>");
