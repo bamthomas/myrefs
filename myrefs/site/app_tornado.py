@@ -65,7 +65,7 @@ class CheckRssFeedsHandlder(tornado.web.RequestHandler):
         self.write('\n\n')
         if self.pending_feed_requests == 0:
             self.write('event: close\ndata:\n\n')
-            self.flush()
+        self.flush()
 
 application = tornado.web.Application([
     (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': os.path.join(os.getcwd() + '/static')}),
