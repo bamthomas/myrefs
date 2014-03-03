@@ -62,7 +62,7 @@ var app = app || {};
             }
         },
         updateFeeds: function () {
-            var source = new EventSource('/rssfeeds/update');
+            var source = new EventSource('/updatefeeds');
             source.onmessage = function (msg) {
                 var feedupdates = JSON.parse(msg.data);
                 $('#rssfeeds').find('a[href="' + feedupdates.url + '"]').

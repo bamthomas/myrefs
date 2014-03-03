@@ -1,4 +1,5 @@
 from StringIO import StringIO
+from functools import partial
 import json
 import feedparser
 from twisted.internet.defer import Deferred
@@ -18,13 +19,13 @@ class RssFeedsRepository(object):
     def __init__(self):
         self.client = MongoClient()
         db = self.client.myrefs
-        self.userfeeds = db.userfeeds
+        self.user_feeds = db.user_feeds
 
     def get_feeds(self, user):
-        return self.userfeeds.find_one({'user': user})['rssfeeds']
+        return self.user_feeds.find_one({'user': user})['rssfeeds']
 
     def insert_feed(self, user, feed_as_dict):
-        self.userfeeds.update({'user': user}, {'$push': {'rssfeeds': feed_as_dict}})
+        self.user_feeds.update({'user': user}, {'$push': {'rssfeeds': feed_as_dict}})
 
 
 class RssFeedsResource(resource.Resource):
@@ -40,30 +41,55 @@ class RssFeedsResource(resource.Resource):
         return json.dumps(rssfeeds)
 
     def render_POST(self, add_feed_request):
-        rss_feed_url = json.loads(add_feed_request.content.getvalue())['url']
+        self.rss_feed_url = json.loads(add_feed_request.content.getvalue())['url']
 
         def finish_request(_):
             add_feed_request.finish()
 
-        d = RssAgent(reactor, self.rss_feeds).run(rss_feed_url)
+        d = RssAgent(reactor).run(self.rss_feed_url)
+        d.addCallback(self.store_feed_info)
         d.addCallback(finish_request)
         d.addErrback(error)
 
         return NOT_DONE_YET
 
+    def store_feed_info(self, rss):
+        self.rss_feeds.insert_feed('bruno', {'url': self.rss_feed_url, 'main_url': rss.feed.link, 'title': rss.feed.title})
+        return None
+
+
+class CheckRssFeedsResource(resource.Resource):
+    isLeaf = True
+
+    def __init__(self, rss_feeds):
+        resource.Resource.__init__(self)
+        self.rss_feeds = rss_feeds
+
+    def render_GET(self, request):
+        rssfeeds = self.rss_feeds.get_feeds('bruno')
+        request.setHeader('Content-Type', 'text/event-stream')
+        request.setHeader('Cache-Control', 'no-cache')
+        self.pending_feed_requests = len(rssfeeds)
+        for feed in rssfeeds:
+            d = RssAgent(reactor).run(feed['url'])
+            d.addCallback(partial(self.write_feed_check, request, feed))
+            d.addErrback(error)
+        return NOT_DONE_YET
+
+    def write_feed_check(self, request, rss_feed, rss):
+        self.pending_feed_requests -= 1
+        request.write('data: %s' % json.dumps({'url': rss_feed['main_url'], 'entries': len(rss.entries)}))
+        request.write('\n\n')
+        if self.pending_feed_requests == 0:
+            request.write('event: close\ndata:\n\n')
+
 
 class RssAgent(Agent):
-    def __init__(self, reactor, rss_feed_repository):
+    def __init__(self, reactor):
         super(RssAgent, self).__init__(reactor)
         self.agent = Agent(reactor)
         self.finished = Deferred()
         self.buffer = StringIO()
-        self.rss_feed_repository = rss_feed_repository
-        self.finished.addCallback(self.parse_feed)
-        self.finished.addErrback(error)
-        self.finished.addCallback(self.store_feed_info)
-        self.finished.addErrback(error)
-        self.rss_feed_repository = rss_feed_repository
 
     def run(self, rss_feed_url):
         self.rss_feed_url = rss_feed_url
@@ -71,8 +97,6 @@ class RssAgent(Agent):
         deferred.addCallback(self.response_received)
         deferred.addErrback(error)
         deferred.addCallback(self.parse_feed)
-        deferred.addErrback(error)
-        deferred.addCallback(self.store_feed_info)
         deferred.addErrback(error)
         return deferred
 
@@ -83,10 +107,6 @@ class RssAgent(Agent):
 
     def parse_feed(self, xmlfeed):
         return feedparser.parse(xmlfeed)
-
-    def store_feed_info(self, rss):
-        self.rss_feed_repository.insert_feed('bruno', {'url': self.rss_feed_url, 'main_url': rss.feed.link, 'title': rss.feed.title})
-        return None
 
 
 class RssParserProtocol(Protocol):
@@ -109,5 +129,6 @@ rss_feeds = RssFeedsRepository()
 root = Resource()
 root.putChild('rssfeeds', RssFeedsResource(rss_feeds))
 root.putChild('', File('static'))
-reactor.listenTCP(8080, server.Site(root))
+root.putChild('updatefeeds', CheckRssFeedsResource(rss_feeds))
+reactor.listenTCP(8888, server.Site(root))
 reactor.run()

@@ -70,7 +70,7 @@ class CheckRssFeedsHandlder(tornado.web.RequestHandler):
 application = tornado.web.Application([
     (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': os.path.join(os.getcwd() + '/static')}),
     (r'/rssfeeds', RssFeedsHandler, {'rss_feeds': RssFeedsRepository()}),
-    (r'/rssfeeds/update', CheckRssFeedsHandlder, {'rss_feeds': RssFeedsRepository()}),
+    (r'/updatefeeds', CheckRssFeedsHandlder, {'rss_feeds': RssFeedsRepository()}),
 ])
 
 if __name__ == "__main__":
