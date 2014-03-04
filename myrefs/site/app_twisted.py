@@ -43,12 +43,9 @@ class RssFeedsResource(resource.Resource):
     def render_POST(self, add_feed_request):
         self.rss_feed_url = json.loads(add_feed_request.content.getvalue())['url']
 
-        def finish_request(_):
-            add_feed_request.finish()
-
-        d = RssAgent(reactor).run(self.rss_feed_url)
+        d = RssAgent(reactor, self.store_feed_info).run(self.rss_feed_url)
         d.addCallback(self.store_feed_info)
-        d.addCallback(finish_request)
+        d.addCallback(lambda _: add_feed_request.finish())
         d.addErrback(error)
 
         return NOT_DONE_YET
