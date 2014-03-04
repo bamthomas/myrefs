@@ -2,7 +2,7 @@ from StringIO import StringIO
 from functools import partial
 import json
 import feedparser
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, DeferredList
 from twisted.internet.protocol import Protocol, connectionDone
 from twisted.python.syslog import startLogging
 from twisted.web import server, resource
@@ -69,27 +69,22 @@ class CheckRssFeedsResource(resource.Resource):
         rssfeeds = self.rss_feeds.get_feeds('bruno')
         request.setHeader('Content-Type', 'text/event-stream')
         request.setHeader('Cache-Control', 'no-cache')
-        self.pending_feed_requests = len(rssfeeds)
-        for feed in rssfeeds:
-            d = RssAgent(reactor).run(feed['url'])
-            d.addCallback(partial(self.write_feed_check, request, feed))
-            d.addErrback(error)
+        
+        feed_requests = DeferredList([RssAgent(reactor, partial(self.write_feed_check, request, feed)).run(feed['url']) for feed in rssfeeds])
+        feed_requests.addCallback(lambda _: request.write('event: close\ndata:\n\n'))
         return NOT_DONE_YET
 
     def write_feed_check(self, request, rss_feed, rss):
-        self.pending_feed_requests -= 1
         request.write('data: %s' % json.dumps({'url': rss_feed['main_url'], 'entries': len(rss.entries)}))
         request.write('\n\n')
-        if self.pending_feed_requests == 0:
-            request.write('event: close\ndata:\n\n')
 
 
 class RssAgent(Agent):
-    def __init__(self, reactor):
+    def __init__(self, reactor, callback):
         super(RssAgent, self).__init__(reactor)
         self.agent = Agent(reactor)
-        self.finished = Deferred()
         self.buffer = StringIO()
+        self.callback = callback
 
     def run(self, rss_feed_url):
         self.rss_feed_url = rss_feed_url
@@ -98,6 +93,7 @@ class RssAgent(Agent):
         deferred.addErrback(error)
         deferred.addCallback(self.parse_feed)
         deferred.addErrback(error)
+        deferred.addCallback(self.callback)
         return deferred
 
     def response_received(self, rss_response):
