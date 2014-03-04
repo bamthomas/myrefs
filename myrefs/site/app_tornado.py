@@ -7,7 +7,7 @@ from tornado.httpclient import AsyncHTTPClient
 import tornado.web
 from tornado.ioloop import IOLoop
 from tornado.web import asynchronous
-
+from tornado.gen import coroutine
 
 class RssFeedsRepository(object):
     def __init__(self):
@@ -51,20 +51,16 @@ class CheckRssFeedsHandlder(tornado.web.RequestHandler):
         self.set_header('Content-Type', 'text/event-stream')
         self.set_header('Cache-Control', 'no-cache')
 
-    @asynchronous
+    @coroutine
     def get(self):
         rssfeeds = self.rss_feeds.get_feeds('bruno')
-        self.pending_feed_requests = len(rssfeeds)
-        for feed in rssfeeds:
-            AsyncHTTPClient().fetch(feed['url'], callback=partial(self.handle_feed_check, feed))
+        yield [AsyncHTTPClient().fetch(feed['url'], callback=partial(self.handle_feed_check, feed)) for feed in rssfeeds]
+        self.write('event: close\ndata:\n\n')
 
     def handle_feed_check(self, rss_feed, response):
         rss = feedparser.parse(response.body)
-        self.pending_feed_requests -= 1
         self.write('data: %s' % json.dumps({'url': rss_feed['main_url'], 'entries': len(rss.entries)}))
         self.write('\n\n')
-        if self.pending_feed_requests == 0:
-            self.write('event: close\ndata:\n\n')
         self.flush()
 
 application = tornado.web.Application([
