@@ -1,32 +1,14 @@
-from datetime import datetime
 from functools import partial
 import json
-import time
 import feedparser
+from feeds_repository import RssFeedsRepository
 import os
-from pymongo import MongoClient
 from tornado.httpclient import AsyncHTTPClient
 import tornado.web
 from tornado.ioloop import IOLoop
 from tornado.web import asynchronous
 from tornado.gen import coroutine
-
-
-class RssFeedsRepository(object):
-    def __init__(self):
-        self.client = MongoClient()
-        db = self.client.myrefs
-        self.user_feeds = db.user_feeds
-        self.user_articles = db.user_articles
-
-    def get_feeds(self, user):
-        return self.user_feeds.find_one({'user': user})['rssfeeds']
-
-    def insert_feed(self, user, feed_as_dict):
-        self.user_feeds.update({'user': user}, {'$push': {'rssfeeds': feed_as_dict}})
-
-    def insert_fetched_article(self, user, article_url):
-        self.user_articles.insert({'user': user, 'article_url': article_url})
+from utils import json_encode
 
 
 class RssFeedsHandler(tornado.web.RequestHandler):
@@ -65,16 +47,6 @@ class CheckRssFeedsHandlder(tornado.web.RequestHandler):
         self.write('data: %s' % json.dumps({'url': rss_feed['main_url'], 'entries': json_encode(rss.entries)}))
         self.write('\n\n')
         self.flush()
-
-
-def json_encode(data):
-    class JsonEncoder(json.JSONEncoder):
-        def default(self, o):
-            if isinstance(o, time.struct_time):
-                return datetime.fromtimestamp(time.mktime(o)).isoformat()
-            return json.JSONEncoder.default(self, o)
-    return json.dumps(data, cls=JsonEncoder)
-
 
 application = tornado.web.Application([
     (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': os.path.join(os.getcwd() + '/static')}),

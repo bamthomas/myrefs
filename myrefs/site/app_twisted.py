@@ -2,30 +2,17 @@ from StringIO import StringIO
 from functools import partial
 import json
 import feedparser
+from feeds_repository import RssFeedsRepository
 from twisted.internet.defer import Deferred, DeferredList
 from twisted.internet.protocol import Protocol, connectionDone
 from twisted.python.syslog import startLogging
 from twisted.web import server, resource
-from pymongo.mongo_client import MongoClient
 from twisted.web.client import Agent
 from twisted.web.http_headers import Headers
 from twisted.web.resource import Resource
 from twisted.web.server import NOT_DONE_YET
 from twisted.web.static import File
 from twisted.internet import reactor
-
-
-class RssFeedsRepository(object):
-    def __init__(self):
-        self.client = MongoClient()
-        db = self.client.myrefs
-        self.user_feeds = db.user_feeds
-
-    def get_feeds(self, user):
-        return self.user_feeds.find_one({'user': user})['rssfeeds']
-
-    def insert_feed(self, user, feed_as_dict):
-        self.user_feeds.update({'user': user}, {'$push': {'rssfeeds': feed_as_dict}})
 
 
 class RssFeedsResource(resource.Resource):
