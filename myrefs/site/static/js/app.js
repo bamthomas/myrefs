@@ -71,8 +71,15 @@ var app = app || {};
                 $feed.append("<span class='badge alert-danger'>" + entries.length + "</span>");
                 $feed.parent().append('<ul></ul>');
                 _(entries).each(function(entry) {
-                    localStorage[entry.link] = entry;
-                    $feed.parent().find('ul').append('<li>' + entry.title + '</li>');
+                    localStorage[entry.link] = JSON.stringify(entry);
+                    $feed.parent().find('ul').append('<li><a class="article" href="' + entry.link + '">' + entry.title + '</a></li>');
+                });
+                $('#rssfeeds').find('a.article').on('click', function(evt) {
+                    evt.preventDefault();
+                    $('#article_modal').find('.modal-title').html($(this).html());
+                    var article = JSON.parse(localStorage[this.href]);
+                    $('#article_modal').find('.modal-body').html(article.content[0].value);
+                    $('#article_modal').modal();
                 });
             };
             source.addEventListener('close', function () {
