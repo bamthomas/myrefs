@@ -66,8 +66,14 @@ var app = app || {};
             source.onmessage = function (msg) {
                 var feedupdates = JSON.parse(msg.data);
                 var entries = JSON.parse(feedupdates.entries);
-                $('#rssfeeds').find('a[href="' + feedupdates.url + '"]').
-                    append("<span class='badge alert-danger'>" + entries.length + "</span>");
+
+                var $feed = $('#rssfeeds').find('a[href="' + feedupdates.url + '"]');
+                $feed.append("<span class='badge alert-danger'>" + entries.length + "</span>");
+                $feed.parent().append('<ul></ul>');
+                _(entries).each(function(entry) {
+                    localStorage[entry.link] = entry;
+                    $feed.parent().find('ul').append('<li>' + entry.title + '</li>');
+                });
             };
             source.addEventListener('close', function () {
                 console.log("closing feeds update");
