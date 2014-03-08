@@ -65,8 +65,9 @@ var app = app || {};
             var source = new EventSource('/updatefeeds');
             source.onmessage = function (msg) {
                 var feedupdates = JSON.parse(msg.data);
+                var entries = JSON.parse(feedupdates.entries);
                 $('#rssfeeds').find('a[href="' + feedupdates.url + '"]').
-                    append("<span class='badge alert-danger'>" + feedupdates.entries + "</span>");
+                    append("<span class='badge alert-danger'>" + entries.length + "</span>");
             };
             source.addEventListener('close', function () {
                 console.log("closing feeds update");

@@ -3,4 +3,5 @@ elasticsearch
 tornado
 twisted
 pymongo
+nose
 # testing

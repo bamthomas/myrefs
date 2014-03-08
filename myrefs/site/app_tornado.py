@@ -1,5 +1,7 @@
+from datetime import datetime
 from functools import partial
 import json
+import time
 import feedparser
 import os
 from pymongo import MongoClient
@@ -8,6 +10,7 @@ import tornado.web
 from tornado.ioloop import IOLoop
 from tornado.web import asynchronous
 from tornado.gen import coroutine
+
 
 class RssFeedsRepository(object):
     def __init__(self):
@@ -59,9 +62,19 @@ class CheckRssFeedsHandlder(tornado.web.RequestHandler):
 
     def handle_feed_check(self, rss_feed, response):
         rss = feedparser.parse(response.body)
-        self.write('data: %s' % json.dumps({'url': rss_feed['main_url'], 'entries': len(rss.entries)}))
+        self.write('data: %s' % json.dumps({'url': rss_feed['main_url'], 'entries': json_encode(rss.entries)}))
         self.write('\n\n')
         self.flush()
+
+
+def json_encode(data):
+    class JsonEncoder(json.JSONEncoder):
+        def default(self, o):
+            if isinstance(o, time.struct_time):
+                return datetime.fromtimestamp(time.mktime(o)).isoformat()
+            return json.JSONEncoder.default(self, o)
+    return json.dumps(data, cls=JsonEncoder)
+
 
 application = tornado.web.Application([
     (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': os.path.join(os.getcwd() + '/static')}),
