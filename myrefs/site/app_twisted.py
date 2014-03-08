@@ -13,6 +13,7 @@ from twisted.web.resource import Resource
 from twisted.web.server import NOT_DONE_YET
 from twisted.web.static import File
 from twisted.internet import reactor
+from utils import json_encode
 
 
 class RssFeedsResource(resource.Resource):
@@ -59,7 +60,7 @@ class CheckRssFeedsResource(resource.Resource):
         return NOT_DONE_YET
 
     def write_feed_check(self, request, rss_feed, rss):
-        request.write('data: %s' % json.dumps({'url': rss_feed['main_url'], 'entries': len(rss.entries)}))
+        request.write('data: %s' % json.dumps({'url': rss_feed['main_url'], 'entries': json_encode(rss.entries)}))
         request.write('\n\n')
 
 
