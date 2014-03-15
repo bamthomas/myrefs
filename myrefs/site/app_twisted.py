@@ -60,7 +60,7 @@ class CheckRssFeedsResource(resource.Resource):
         return NOT_DONE_YET
 
     def write_feed_check(self, request, rss_feed, rss):
-        request.write('data: %s' % json.dumps({'url': rss_feed['main_url'], 'entries': json_encode(rss.entries)}))
+        request.write('data: %s' % json.dumps({'id': rss_feed['id'], 'url': rss_feed['main_url'], 'entries': json_encode(rss.entries)}))
         request.write('\n\n')
 
 

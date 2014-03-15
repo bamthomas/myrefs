@@ -1,3 +1,4 @@
+import hashlib
 from pymongo import MongoClient
 
 
@@ -12,6 +13,7 @@ class RssFeedsRepository(object):
         return self.user_feeds.find_one({'user': user})['rssfeeds']
 
     def insert_feed(self, user, feed_as_dict):
+        feed_as_dict['id'] = hashlib.md5(feed_as_dict['url']).hexdigest()
         self.user_feeds.update({'user': user}, {'$push': {'rssfeeds': feed_as_dict}})
 
     def insert_fetched_article(self, user, article_url):

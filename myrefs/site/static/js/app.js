@@ -41,10 +41,14 @@ var app = app || {};
             this.model.fetch({reset: true});
         },
         appendRssFeed: function (rssFeed) {
-            $('ul', this.el).append("<li><a href='" + rssFeed.get('main_url') + "'>" + rssFeed.get('title') + "</a></li>");
+            $('#feeds', this.el).append('<div class="panel panel-default"> <div class="panel-heading"> ' +
+                '<h4 class="panel-title"> ' +
+                '<a data-toggle="collapse" data-parent="#feeds" href="#' + rssFeed.get('id') + '"> ' + rssFeed.get('title') + ' </a> ' +
+                '</h4> ' +
+                '</div> ' +
+                '<div id="' + rssFeed.get('id') + '" class="panel-collapse collapse"> <div class="panel-body"><ul></ul></div></div></div>');
         },
         render: function () {
-            $(this.el).find('#rssfeeds').append("<ul></ul>");
             var self = this;
             _(this.model.models).each(function (rssFeed) {
                 self.appendRssFeed(rssFeed);
@@ -67,22 +71,24 @@ var app = app || {};
                 var feedupdates = JSON.parse(msg.data);
                 var entries = JSON.parse(feedupdates.entries);
 
-                var $feed = $('#rssfeeds').find('a[href="' + feedupdates.url + '"]');
-                $feed.append("<span class='badge alert-danger'>" + entries.length + "</span>");
-                $feed.parent().append('<ul></ul>');
-                _(entries).each(function(entry) {
-                    localStorage[entry.link] = JSON.stringify(entry);
-                    $feed.parent().find('ul').append('<li><a class="article" href="' + entry.link + '">' + entry.title + '</a></li>');
-                });
-                $('#rssfeeds').find('a.article').on('click', function(evt) {
+                if (entries.length > 0) {
+                    var $feed_title = $('#feeds').find('a[href="#' + feedupdates.id + '"]');
+                    $feed_title.append("<span class='badge alert-danger'>" + entries.length + "</span>");
+                    var $feedBody = $('#feeds').find('#' + feedupdates.id).find('.panel-body');
+                    _(entries).each(function (entry) {
+                        localStorage[entry.link] = JSON.stringify(entry);
+                        $feedBody.find('ul').append('<li><a class="article" href="' + entry.link + '">' + entry.title + '</a></li>');
+                    });
+                }
+            };
+            source.addEventListener('close', function () {
+                $('#feeds').find('a.article').on('click', function (evt) {
                     evt.preventDefault();
                     $('#article_modal').find('.modal-title').html($(this).html());
                     var article = JSON.parse(localStorage[this.href]);
                     $('#article_modal').find('.modal-body').html(article.content[0].value);
                     $('#article_modal').modal();
                 });
-            };
-            source.addEventListener('close', function () {
                 console.log("closing feeds update");
                 this.close();
             }, false);

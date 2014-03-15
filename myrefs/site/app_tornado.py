@@ -44,7 +44,7 @@ class CheckRssFeedsHandlder(tornado.web.RequestHandler):
 
     def handle_feed_check(self, rss_feed, response):
         rss = feedparser.parse(response.body)
-        self.write('data: %s' % json.dumps({'url': rss_feed['main_url'], 'entries': json_encode(rss.entries)}))
+        self.write('data: %s' % json.dumps({'id': rss_feed['id'], 'url': rss_feed['main_url'], 'entries': json_encode(rss.entries)}))
         self.write('\n\n')
         self.flush()
 
