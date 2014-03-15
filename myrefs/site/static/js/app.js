@@ -86,7 +86,12 @@ var app = app || {};
                     evt.preventDefault();
                     $('#article_modal').find('.modal-title').html($(this).html());
                     var article = JSON.parse(localStorage[this.href]);
-                    $('#article_modal').find('.modal-body').html(article.content[0].value);
+                    if (article.content === undefined) {
+                        $('#article_modal').find('.modal-body').html('<p>' + article.summary + '</p>' + '<p><a href="' + article.link + '">'  + article.link + '</a></p>');
+                    } else {
+                        $('#article_modal').find('.modal-body').html(article.content[0].value);
+                    }
+
                     $('#article_modal').modal();
                 });
                 console.log("closing feeds update");
