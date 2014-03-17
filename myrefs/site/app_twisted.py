@@ -15,6 +15,8 @@ from twisted.web.static import File
 from twisted.internet import reactor
 from utils import json_encode
 
+app_reactor = reactor
+
 
 class RssFeedsResource(resource.Resource):
     isLeaf = True
@@ -31,7 +33,7 @@ class RssFeedsResource(resource.Resource):
     def render_POST(self, add_feed_request):
         self.rss_feed_url = json.loads(add_feed_request.content.getvalue())['url']
 
-        d = RssAgent(reactor, self.store_feed_info).run(self.rss_feed_url)
+        d = RssAgent(app_reactor, self.store_feed_info).run(self.rss_feed_url)
         d.addCallback(self.store_feed_info)
         d.addCallback(lambda _: add_feed_request.finish())
         d.addErrback(error)
@@ -50,12 +52,15 @@ class CheckRssFeedsResource(resource.Resource):
         resource.Resource.__init__(self)
         self.rss_feeds = rss_feeds
 
-    def render_GET(self, request):
+    def _get(self, request):
         rssfeeds = self.rss_feeds.get_feeds('bruno')
         request.setHeader('Content-Type', 'text/event-stream')
         request.setHeader('Cache-Control', 'no-cache')
-        
         feed_requests = DeferredList([RssAgent(reactor, partial(self.write_feed_check, request, feed)).run(feed['url']) for feed in rssfeeds])
+        return feed_requests
+
+    def render_GET(self, request):
+        feed_requests = self._get(request)
         feed_requests.addCallback(lambda _: request.write('event: close\ndata:\n\n'))
         return NOT_DONE_YET
 
@@ -105,11 +110,13 @@ class RssParserProtocol(Protocol):
 def error(traceback):
     print traceback
 
-startLogging(prefix='myrefs')
-rss_feeds = RssFeedsRepository()
-root = Resource()
-root.putChild('rssfeeds', RssFeedsResource(rss_feeds))
-root.putChild('', File('static'))
-root.putChild('updatefeeds', CheckRssFeedsResource(rss_feeds))
-reactor.listenTCP(8888, server.Site(root))
-reactor.run()
+
+if __name__ == "__main__":
+    startLogging(prefix='myrefs')
+    rss_feeds = RssFeedsRepository()
+    root = Resource()
+    root.putChild('rssfeeds', RssFeedsResource(rss_feeds))
+    root.putChild('', File('static'))
+    root.putChild('updatefeeds', CheckRssFeedsResource(rss_feeds))
+    app_reactor.listenTCP(8888, server.Site(root))
+    app_reactor.run()
