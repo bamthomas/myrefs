@@ -1,3 +1,4 @@
+from Queue import Queue
 from nose.twistedtools import reactor, deferred
 from app_twisted import CheckRssFeedsResource
 from nose import with_setup
@@ -19,10 +20,10 @@ class DummyRssFeedsProviderResource(resource.Resource):
 
     def __init__(self):
         resource.Resource.__init__(self)
-        self.requests = []
+        self.requests = Queue()
 
     def render_GET(self, request):
-        self.requests.append(request)
+        self.requests.put(request)
         return 'OK'
 
 
@@ -39,8 +40,8 @@ class TestCheckRssFeedsResource(object):
         d = check_resource._get(DummyRequest(['postpath']))
 
         def check(_):
-            eq_(1, len(self.feed_provider.requests))
-            eq_('/feeds', self.feed_provider.requests[0].uri)
+            eq_(1, self.feed_provider.requests.qsize())
+            eq_('/feeds', self.feed_provider.requests.get().uri)
 
         d.addCallback(check)
         return d
