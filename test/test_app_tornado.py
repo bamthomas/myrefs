@@ -2,7 +2,7 @@ from Queue import Queue
 from app_tornado import CheckRssFeedsHandlder
 import tornado
 from tornado.httpserver import HTTPServer
-from tornado.testing import AsyncHTTPTestCase, IOLoop
+from tornado.testing import AsyncHTTPTestCase
 from tornado.web import Application
 
 

@@ -48,12 +48,12 @@ class CheckRssFeedsHandlder(tornado.web.RequestHandler):
         self.write('\n\n')
         self.flush()
 
-application = tornado.web.Application([
-    (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': os.path.join(os.getcwd() + '/static')}),
-    (r'/rssfeeds', RssFeedsHandler, {'rss_feeds': RssFeedsRepository()}),
-    (r'/updatefeeds', CheckRssFeedsHandlder, {'rss_feeds': RssFeedsRepository()}),
-])
-
 if __name__ == "__main__":
+    rss_feeds_repository = RssFeedsRepository()
+    application = tornado.web.Application([
+        (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': os.path.join(os.getcwd() + '/static')}),
+        (r'/rssfeeds', RssFeedsHandler, {'rss_feeds': rss_feeds_repository}),
+        (r'/updatefeeds', CheckRssFeedsHandlder, {'rss_feeds': rss_feeds_repository}),
+    ])
     application.listen(8888)
     IOLoop.instance().start()
