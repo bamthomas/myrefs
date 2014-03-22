@@ -1,6 +1,6 @@
 import time
 from nose.tools import eq_
-from utils import json_encode, get_not_read_entries
+from utils import json_encode, get_unread_entries
 
 
 class TestJsonEncoder(object):
@@ -12,9 +12,9 @@ class TestJsonEncoder(object):
 
 class TestFeedFiltering(object):
     def test_unread_entries__when_no_articles_is_read(self):
-        eq_([], get_not_read_entries([], []))
-        eq_([{'url': 'article1'}], get_not_read_entries([{'url': 'article1'}], []))
+        eq_([], get_unread_entries([], []))
+        eq_([{'url': 'article1'}], get_unread_entries([{'url': 'article1'}], []))
 
     def test_unread_entries(self):
-        eq_([], get_not_read_entries([{'url': 'article1'}], [{'url': 'article1'}]))
-        eq_([{'url': 'article2'}], get_not_read_entries([{'url': 'article1'}, {'url': 'article2'}], [{'url': 'article1'}]))
+        eq_([], get_unread_entries([{'url': 'article1'}], [{'url': 'article1'}]))
+        eq_([{'url': 'article2'}], get_unread_entries([{'url': 'article1'}, {'url': 'article2'}], [{'url': 'article1'}]))
