@@ -76,6 +76,7 @@ var app = app || {};
                     $feed_title.append("<span class='badge alert-danger'>" + entries.length + "</span>");
                     var $feedBody = $('#feeds').find('#' + feedupdates.id).find('.panel-body');
                     _(entries).each(function (entry) {
+                        entry.feed_id = feedupdates.id;
                         localStorage[entry.link] = JSON.stringify(entry);
                         $feedBody.find('ul').append('<li><a class="article" href="' + entry.link + '">' + entry.title + '</a></li>');
                     });
@@ -93,6 +94,12 @@ var app = app || {};
                     }
 
                     $('#article_modal').modal();
+
+                    $.ajax({
+                        url: '/article',
+                        type: 'PUT',
+                        data: JSON.stringify({"url": article.link, "feed_id": article.feed_id})
+                    });
                 });
                 console.log("closing feeds update");
                 this.close();
