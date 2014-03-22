@@ -65,6 +65,7 @@ if __name__ == "__main__":
         (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': os.path.join(os.getcwd() + '/static')}),
         (r'/rssfeeds', RssFeedsHandler, {'rss_feeds': rss_feeds_repository}),
         (r'/updatefeeds', CheckRssFeedsHandlder, {'rss_feeds': rss_feeds_repository}),
+        (r'/article', ArticleHandler, {'rss_feeds': rss_feeds_repository}),
     ])
     application.listen(8888)
     IOLoop.instance().start()
