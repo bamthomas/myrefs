@@ -8,7 +8,7 @@ import tornado.web
 from tornado.ioloop import IOLoop
 from tornado.web import asynchronous
 from tornado.gen import coroutine
-from utils import json_encode
+from utils import json_encode, get_unread_entries
 
 
 class RssFeedsHandler(tornado.web.RequestHandler):
@@ -30,6 +30,15 @@ class RssFeedsHandler(tornado.web.RequestHandler):
         self.rss_feeds.insert_feed('bruno', {'url': rss_feed_url, 'main_url': rss.feed.link, 'title': rss.feed.title})
 
 
+class ArticleHandler(tornado.web.RequestHandler):
+    def initialize(self, rss_feeds):
+        self.rss_feeds = rss_feeds
+
+    def put(self, *args, **kwargs):
+        article_url = self.request.body
+        self.rss_feeds.insert_fetched_article('bruno', None, article_url)
+
+
 class CheckRssFeedsHandlder(tornado.web.RequestHandler):
     def initialize(self, rss_feeds):
         self.rss_feeds = rss_feeds
@@ -44,7 +53,9 @@ class CheckRssFeedsHandlder(tornado.web.RequestHandler):
 
     def handle_feed_check(self, rss_feed, response):
         rss = feedparser.parse(response.body)
-        self.write('data: %s' % json.dumps({'id': rss_feed['id'], 'url': rss_feed['main_url'], 'entries': json_encode(rss.entries)}))
+        read_articles = self.rss_feeds.get_feed_read_articles('bruno', rss_feed['id'])
+        entries = get_unread_entries(rss.entries, read_articles)
+        self.write('data: %s' % json.dumps({'id': rss_feed['id'], 'url': rss_feed['main_url'], 'entries': json_encode(entries)}))
         self.write('\n\n')
         self.flush()
 
