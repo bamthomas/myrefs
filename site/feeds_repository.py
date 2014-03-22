@@ -20,4 +20,4 @@ class RssFeedsRepository(object):
         self.user_articles.insert({'user': user, 'feed_id': feed_id, 'url': article_url})
 
     def get_feed_read_articles(self, user, feed_id):
-        return []
+        return self.user_articles.find({'user': user, 'feed_id': feed_id})
