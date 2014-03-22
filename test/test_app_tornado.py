@@ -15,8 +15,8 @@ class MemoryFeedsRepository(object):
     def get_feeds(self, _):
         return self.feeds
 
-    def insert_fetched_article(self, user, feed_id, article_url):
-        self.articles.append(article_url)
+    def insert_fetched_article(self, user, article_as_dict):
+        self.articles.append(article_as_dict['url'])
 
     def get_feed_read_articles(self, user, feed_id):
         return self.articles
@@ -58,7 +58,7 @@ class TestCheckRssFeedsHandlder(AsyncHTTPTestCase):
     def test_feeds_checked_with_get__read_article_is_not_sent(self):
         self.response_queue.put(FEED_HEADER + '<item><link>my_article_url</link></item>' + FEED_FOOTER)
 
-        self.fetch('/article', method='PUT', body='my_article_url')
+        self.fetch('/article', method='PUT', body='{"feed_id": "id", "url": "my_article_url"}')
 
         self.assertNotIn("my_article_url", (self.fetch('/updatefeeds')).body)
 

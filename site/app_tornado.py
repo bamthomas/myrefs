@@ -35,8 +35,8 @@ class ArticleHandler(tornado.web.RequestHandler):
         self.rss_feeds = rss_feeds
 
     def put(self, *args, **kwargs):
-        article_url = self.request.body
-        self.rss_feeds.insert_fetched_article('bruno', None, article_url)
+        article = json.loads(self.request.body)
+        self.rss_feeds.insert_fetched_article('bruno', article)
 
 
 class CheckRssFeedsHandlder(tornado.web.RequestHandler):
