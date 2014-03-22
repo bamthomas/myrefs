@@ -1,18 +1,25 @@
 # coding=utf-8
 from Queue import Queue
-from app_tornado import CheckRssFeedsHandlder
+from app_tornado import CheckRssFeedsHandlder, ArticleHandler
 import tornado
 from tornado.httpserver import HTTPServer
 from tornado.testing import AsyncHTTPTestCase
 from tornado.web import Application
 
 
-class MockFeedsRepository(object):
+class MemoryFeedsRepository(object):
     def __init__(self, get_feed_return_value):
-        self.get_feed_return_value = get_feed_return_value
+        self.feeds = get_feed_return_value
+        self.articles = []
 
     def get_feeds(self, _):
-        return self.get_feed_return_value
+        return self.feeds
+
+    def insert_fetched_article(self, user, feed_id, article_url):
+        self.articles.append(article_url)
+
+    def get_feed_read_articles(self, user, feed_id):
+        return self.articles
 
 
 class MockRequestHandler(tornado.web.RequestHandler):
@@ -35,9 +42,10 @@ class TestCheckRssFeedsHandlder(AsyncHTTPTestCase):
         self.feed_provider.listen(12345)
 
     def get_app(self):
+        feeds_repository = MemoryFeedsRepository([{'id': 'md5', 'url': 'http://localhost:12345/feeds', 'main_url': 'main_url'}])
         return Application([
-            (r'/updatefeeds', CheckRssFeedsHandlder, {'rss_feeds': MockFeedsRepository(
-                [{'id': 'md5', 'url': 'http://localhost:12345/feeds', 'main_url': 'main_url'}])})])
+            (r'/updatefeeds', CheckRssFeedsHandlder, {'rss_feeds': feeds_repository}),
+            (r'/article', ArticleHandler, {'rss_feeds': feeds_repository})])
 
     def test_feeds_checked_with_get(self):
         self.response_queue.put(FEED_HEADER + '<item><link>my_article_url</link></item>' + FEED_FOOTER)
@@ -46,6 +54,14 @@ class TestCheckRssFeedsHandlder(AsyncHTTPTestCase):
         self.assertEquals(1, self.requests_queue.qsize())
         self.assertEquals('feeds', self.requests_queue.get())
         self.assertIn("my_article_url", traceback_future.result().body)
+
+    def test_feeds_checked_with_get__read_article_is_not_sent(self):
+        self.response_queue.put(FEED_HEADER + '<item><link>my_article_url</link></item>' + FEED_FOOTER)
+
+        self.fetch('/article', method='PUT', body='my_article_url')
+
+        self.assertNotIn("my_article_url", (self.fetch('/updatefeeds')).body)
+
 
 FEED_HEADER = """
 <?xml version="1.0" encoding="UTF-8"?>

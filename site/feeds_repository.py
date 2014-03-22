@@ -16,5 +16,8 @@ class RssFeedsRepository(object):
         feed_as_dict['id'] = hashlib.md5(feed_as_dict['url']).hexdigest()
         self.user_feeds.update({'user': user}, {'$push': {'rssfeeds': feed_as_dict}})
 
-    def insert_fetched_article(self, user, article_url):
-        self.user_articles.insert({'user': user, 'article_url': article_url})
+    def insert_fetched_article(self, user, feed_id, article_url):
+        self.user_articles.insert({'user': user, 'feed_id': feed_id, 'url': article_url})
+
+    def get_feed_read_articles(self, user, feed_id):
+        return []

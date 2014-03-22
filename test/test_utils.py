@@ -13,8 +13,8 @@ class TestJsonEncoder(object):
 class TestFeedFiltering(object):
     def test_unread_entries__when_no_articles_is_read(self):
         eq_([], get_unread_entries([], []))
-        eq_([{'url': 'article1'}], get_unread_entries([{'url': 'article1'}], []))
+        eq_([{'link': 'article1'}], get_unread_entries([{'link': 'article1'}], []))
 
     def test_unread_entries(self):
-        eq_([], get_unread_entries([{'url': 'article1'}], [{'url': 'article1'}]))
-        eq_([{'url': 'article2'}], get_unread_entries([{'url': 'article1'}, {'url': 'article2'}], [{'url': 'article1'}]))
+        eq_([], get_unread_entries([{'link': 'article1'}], [{'url': 'article1'}]))
+        eq_([{'link': 'article2'}], get_unread_entries([{'link': 'article1'}, {'link': 'article2'}], [{'url': 'article1'}]))
