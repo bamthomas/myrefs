@@ -49,11 +49,12 @@ class TestCheckRssFeedsHandlder(AsyncHTTPTestCase):
 
     def test_feeds_checked_with_get(self):
         self.response_queue.put(FEED_HEADER + '<item><link>my_article_url</link></item>' + FEED_FOOTER)
-        traceback_future = self.http_client.fetch(self.get_url('/updatefeeds'), self.stop)
-        self.wait()
+
+        response = self.fetch('/updatefeeds')
+
         self.assertEquals(1, self.requests_queue.qsize())
         self.assertEquals('feeds', self.requests_queue.get())
-        self.assertIn("my_article_url", traceback_future.result().body)
+        self.assertIn("my_article_url", response.body)
 
     def test_feeds_checked_with_get__read_article_is_not_sent(self):
         self.response_queue.put(FEED_HEADER + '<item><link>my_article_url</link></item>' + FEED_FOOTER)
