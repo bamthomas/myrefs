@@ -28,34 +28,54 @@ var app = app || {};
     var appRouter = new MyRefsRouter();
     Backbone.history.start();
     appRouter.navigate('rss', {trigger: true});
+
     app.RssView = Backbone.View.extend({
-        el: $('#rss'),
+        tagName: 'div',
+
+        template: _.template('\
+                <div class="panel-heading"> \
+                    <h4 class="panel-title"> \
+                        <a data-toggle="collapse" data-parent="#feeds" href="#<%=id%>"><%=title%></a> \
+                    </h4> \
+                </div>\
+                <div id="<%=id%>" class="panel-collapse collapse"> \
+                    <div class="panel-body"> \
+                        <ul></ul> \
+                    </div> \
+                </div>'),
+
+        render: function () {
+            this.$el.addClass('panel panel-default');
+            this.$el.html(this.template(this.model.attributes));
+            return this.$el;
+        }
+    });
+
+    app.RssListView = Backbone.View.extend({
+        id: 'feeds',
         events: {
             "click .new-rss-btn": "addRssFeed"
         },
         initialize: function () {
-            _.bindAll(this, 'render', 'appendRssFeed');
+            _.bindAll(this, 'render');
             this.$new_feed_input = $('#new_feed_input');
+            this.$el.addClass('panel-group');
+
             this.model = new RssFeeds();
             this.model.bind('reset', this.render);
             this.model.fetch({reset: true});
         },
-        appendRssFeed: function (rssFeed) {
-            $('#feeds', this.el).append('<div class="panel panel-default"> <div class="panel-heading"> ' +
-                '<h4 class="panel-title"> ' +
-                '<a data-toggle="collapse" data-parent="#feeds" href="#' + rssFeed.get('id') + '"> ' + rssFeed.get('title') + ' </a> ' +
-                '</h4> ' +
-                '</div> ' +
-                '<div id="' + rssFeed.get('id') + '" class="panel-collapse collapse"> <div class="panel-body"><ul></ul></div></div></div>');
-        },
+
         render: function () {
             var self = this;
+            $('#rssfeeds_row').find('div.col-lg-12').html(this.$el);
             _(this.model.models).each(function (rssFeed) {
-                self.appendRssFeed(rssFeed);
+                self.$el.append(new app.RssView({model: rssFeed}).render());
             }, this);
             self.updateFeeds();
             return this;
         },
+
         addRssFeed: function (e) {
             var url = this.$new_feed_input.val().trim();
             if (url !== '') {
@@ -65,6 +85,7 @@ var app = app || {};
                 this.$new_feed_input.val('');
             }
         },
+
         updateFeeds: function () {
             var source = new EventSource('/updatefeeds');
             source.onmessage = function (msg) {
@@ -106,5 +127,5 @@ var app = app || {};
             }, false);
         }
     });
-    new app.RssView();
+    new app.RssListView();
 })(jQuery);
