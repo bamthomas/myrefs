@@ -28,6 +28,47 @@ var app = app || {};
     });
 
     app.ArticleView = Backbone.View.extend({
+        tagName : 'div',
+        template: _.template('\
+        <div class="modal fade" id="article_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">\
+          <div class="modal-dialog"> \
+            <div class="modal-content">\
+              <div class="modal-header">\
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>\
+                <h4 class="modal-title" id="myModalLabel"><%=title%></h4>\
+              </div>\
+              <div class="modal-body">\
+                 <%=body%>\
+              </div>\
+              <div class="modal-footer">\
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>\
+              </div>\
+            </div>\
+          </div>\
+          </div>\
+        </div>'),
+
+        initialize: function (options) {
+            if (options.model.get('content') == undefined) {
+                options.model.set('body', options.model.get('summary'));
+            } else {
+                options.model.set('body', options.model.get('content')[0].value);
+            }
+        },
+        render: function() {
+            var article = this.model;
+            $.ajax({
+                url: '/article',
+                type: 'PUT',
+                data: JSON.stringify({"url": article.get('link'), "feed_id": article.get('feed_id')})
+            });
+            $('#modal_container').html(this.template(article.attributes));
+            $(this.$el).modal();
+            return this.$el;
+        }
+    });
+
+    app.ArticleLinkView = Backbone.View.extend({
         tagName: 'li',
         template: _.template('<a class="article" href="<%=link%>"><%=title%></a>'),
         events: {
@@ -39,21 +80,7 @@ var app = app || {};
         },
         showArticle: function (e) {
             e.preventDefault();
-            $('#article_modal').find('.modal-title').html(this.model.get('title'));
-            var article = this.model;
-            if (article.get('content') === undefined) {
-                $('#article_modal').find('.modal-body').html('<p>' + article.get('summary') + '</p>' + '<p><a href="' + article.get('link') + '">'  + article.get('link') + '</a></p>');
-            } else {
-                $('#article_modal').find('.modal-body').html(article.get('content')[0].value);
-            }
-
-            $('#article_modal').modal();
-
-            $.ajax({
-                url: '/article',
-                type: 'PUT',
-                data: JSON.stringify({"url": article.get('link'), "feed_id": article.get('feed_id')})
-            });
+            new app.ArticleView({model: this.model}).render();
         }
     });
 
@@ -131,7 +158,7 @@ var app = app || {};
                     _(entries).each(function (entry) {
                         entry.feed_id = feedupdates.id;
                         localStorage[entry.link] = JSON.stringify(entry);
-                        $feedBody.find('ul').append(new app.ArticleView({model: new Article(entry)}).render());
+                        $feedBody.find('ul').append(new app.ArticleLinkView({model: new Article(entry)}).render());
                     });
                 }
             };
