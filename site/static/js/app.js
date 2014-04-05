@@ -4,7 +4,10 @@ var app = app || {};
     'use strict';
 
     var RssFeed = Backbone.Model.extend({
-        url: '/rssfeeds'
+        url: '/rssfeeds',
+        defaults: {
+            entries: []
+        }
     });
 
     var RssFeeds = Backbone.Collection.extend({
@@ -91,9 +94,21 @@ var app = app || {};
                     </div> \
                 </div>'),
 
+        initialize: function() {
+            _.bindAll(this, "render");
+            this.model.bind('change', this.render);
+        },
+
         render: function () {
             this.$el.addClass('panel panel-default');
             this.$el.html(this.template(this.model.attributes));
+            var self = this;
+            if (this.model.get('entries').length > 0) {
+                this.$el.find('.panel-title').append("<span class='badge alert-danger'>" + this.model.get('entries').length + "</span>");
+            }
+            _(this.model.get('entries')).each(function (entry) {
+                self.$el.find('ul').append(new app.ArticleLinkView({model: entry}).render());
+            });
             return this.$el;
         }
     });
@@ -134,20 +149,18 @@ var app = app || {};
         },
 
         updateFeeds: function () {
+            var self = this;
             var source = new EventSource('/updatefeeds');
             source.onmessage = function (msg) {
                 var feedupdates = JSON.parse(msg.data);
                 var entries = JSON.parse(feedupdates.entries);
 
                 if (entries.length > 0) {
-                    var $feed_title = $('#feeds').find('a[href="#' + feedupdates.id + '"]');
-                    $feed_title.append("<span class='badge alert-danger'>" + entries.length + "</span>");
-                    var $feedBody = $('#feeds').find('#' + feedupdates.id).find('.panel-body');
-                    _(entries).each(function (entry) {
+                    var feed = self.model.findWhere({id: feedupdates.id});
+                    feed.set('entries', _(entries).map(function(entry) {
                         entry.feed_id = feedupdates.id;
-                        localStorage[entry.link] = JSON.stringify(entry);
-                        $feedBody.find('ul').append(new app.ArticleLinkView({model: new Article(entry)}).render());
-                    });
+                        return new Article(entry)
+                    }));
                 }
             };
             source.addEventListener('close', function () {
