@@ -29,25 +29,7 @@ var app = app || {};
 
     app.ArticleView = Backbone.View.extend({
         tagName : 'div',
-        template: _.template('\
-        <div class="modal fade" id="article_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">\
-          <div class="modal-dialog"> \
-            <div class="modal-content">\
-              <div class="modal-header">\
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>\
-                <h4 class="modal-title" id="myModalLabel"><%=title%></h4>\
-              </div>\
-              <div class="modal-body">\
-                 <%=body%>\
-              </div>\
-              <div class="modal-footer">\
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>\
-              </div>\
-            </div>\
-          </div>\
-          </div>\
-        </div>'),
-
+        template: _.template('<%=body%>'),
         initialize: function (options) {
             if (options.model.get('content') == undefined) {
                 options.model.set('body', options.model.get('summary'));
@@ -62,9 +44,8 @@ var app = app || {};
                 type: 'PUT',
                 data: JSON.stringify({"url": article.get('link'), "feed_id": article.get('feed_id')})
             });
-            $('#modal_container').html(this.template(article.attributes));
-            $(this.$el).modal();
-            return this.$el;
+            this.$el.html(this.template(this.model.attributes));
+            return this;
         }
     });
 
@@ -80,7 +61,14 @@ var app = app || {};
         },
         showArticle: function (e) {
             e.preventDefault();
-            new app.ArticleView({model: this.model}).render();
+            var modal = new Backbone.BootstrapModal({
+                    content: new app.ArticleView({model: this.model}),
+                    title: this.model.get('title'),
+                    cancelText: false,
+                    okText: 'Fermer',
+                    animate: true
+                });
+            modal.open();
         }
     });
 
