@@ -30,9 +30,30 @@ var app = app || {};
     app.ArticleView = Backbone.View.extend({
         tagName: 'li',
         template: _.template('<a class="article" href="<%=link%>"><%=title%></a>'),
+        events: {
+            'click .article': 'showArticle'
+        },
         render: function () {
             this.$el.html(this.template(this.model.attributes));
             return this.$el;
+        },
+        showArticle: function (e) {
+            e.preventDefault();
+            $('#article_modal').find('.modal-title').html(this.model.get('title'));
+            var article = this.model;
+            if (article.get('content') === undefined) {
+                $('#article_modal').find('.modal-body').html('<p>' + article.get('summary') + '</p>' + '<p><a href="' + article.get('link') + '">'  + article.get('link') + '</a></p>');
+            } else {
+                $('#article_modal').find('.modal-body').html(article.get('content')[0].value);
+            }
+
+            $('#article_modal').modal();
+
+            $.ajax({
+                url: '/article',
+                type: 'PUT',
+                data: JSON.stringify({"url": article.get('link'), "feed_id": article.get('feed_id')})
+            });
         }
     });
 
@@ -115,24 +136,6 @@ var app = app || {};
                 }
             };
             source.addEventListener('close', function () {
-                $('#feeds').find('a.article').on('click', function (evt) {
-                    evt.preventDefault();
-                    $('#article_modal').find('.modal-title').html($(this).html());
-                    var article = JSON.parse(localStorage[this.href]);
-                    if (article.content === undefined) {
-                        $('#article_modal').find('.modal-body').html('<p>' + article.summary + '</p>' + '<p><a href="' + article.link + '">'  + article.link + '</a></p>');
-                    } else {
-                        $('#article_modal').find('.modal-body').html(article.content[0].value);
-                    }
-
-                    $('#article_modal').modal();
-
-                    $.ajax({
-                        url: '/article',
-                        type: 'PUT',
-                        data: JSON.stringify({"url": article.link, "feed_id": article.feed_id})
-                    });
-                });
                 console.log("closing feeds update");
                 this.close();
             }, false);
