@@ -7,6 +7,13 @@ var app = app || {};
         url: '/rssfeeds',
         defaults: {
             entries: []
+        },
+
+        removeArticle: function(article) {
+            var entries_without_article = _(this.get('entries')).filter(function (entry) {
+                return entry.get('link') !== article.get('link')
+            });
+            this.set('entries', entries_without_article);
         }
     });
 
@@ -45,8 +52,9 @@ var app = app || {};
             $.ajax({
                 url: '/article',
                 type: 'PUT',
-                data: JSON.stringify({"url": article.get('link'), "feed_id": article.get('feed_id')})
+                data: JSON.stringify({"url": article.get('link'), "feed_id": article.get('feed').id})
             });
+            article.get('feed').removeArticle(article);
             this.$el.html(this.template(this.model.attributes));
             return this;
         }
@@ -158,7 +166,7 @@ var app = app || {};
                 if (entries.length > 0) {
                     var feed = self.model.findWhere({id: feedupdates.id});
                     feed.set('entries', _(entries).map(function(entry) {
-                        entry.feed_id = feedupdates.id;
+                        entry.feed = feed;
                         return new Article(entry)
                     }));
                 }
