@@ -12,6 +12,8 @@ var app = app || {};
         url: '/rssfeeds'
     });
 
+    var Article = Backbone.Model.extend({});
+
     var MyRefsRouter = Backbone.Router.extend({
         routes: {
             'rss': function () {
@@ -22,6 +24,15 @@ var app = app || {};
                 $(".content").hide();
                 $("#marks").show();
             }
+        }
+    });
+
+    app.ArticleView = Backbone.View.extend({
+        tagName: 'li',
+        template: _.template('<a class="article" href="<%=link%>"><%=title%></a>'),
+        render: function () {
+            this.$el.html(this.template(this.model.attributes));
+            return this.$el;
         }
     });
 
@@ -99,7 +110,7 @@ var app = app || {};
                     _(entries).each(function (entry) {
                         entry.feed_id = feedupdates.id;
                         localStorage[entry.link] = JSON.stringify(entry);
-                        $feedBody.find('ul').append('<li><a class="article" href="' + entry.link + '">' + entry.title + '</a></li>');
+                        $feedBody.find('ul').append(new app.ArticleView({model: new Article(entry)}).render());
                     });
                 }
             };
