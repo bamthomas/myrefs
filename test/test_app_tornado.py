@@ -1,8 +1,11 @@
 # coding=utf-8
 from Queue import Queue
-from app_tornado import CheckRssFeedsHandlder, ArticleHandler
+import hashlib
+from app_tornado import CheckRssFeedsHandlder, ArticleHandler, OpmlHandler
 import tornado
+from tornado.httpclient import HTTPRequest
 from tornado.httpserver import HTTPServer
+from tornado.httputil import HTTPHeaders
 from tornado.testing import AsyncHTTPTestCase
 from tornado.web import Application
 
@@ -20,6 +23,10 @@ class MemoryFeedsRepository(object):
 
     def get_feed_read_articles(self, user, feed_id):
         return self.articles
+
+    def insert_feed(self, user, feed_as_dict):
+        feed_as_dict['id'] = hashlib.md5(feed_as_dict['url']).hexdigest()
+        self.feeds.append(feed_as_dict)
 
 
 class MockRequestHandler(tornado.web.RequestHandler):
@@ -64,6 +71,36 @@ class TestCheckRssFeedsHandlder(AsyncHTTPTestCase):
         self.assertNotIn("my_article_url", (self.fetch('/updatefeeds')).body)
 
 
+class TestImportOpmlFile(AsyncHTTPTestCase):
+    def get_app(self):
+        self.feeds_repository = MemoryFeedsRepository([])
+        return Application([(r'/opml/import', OpmlHandler, {'rss_feeds': self.feeds_repository})])
+
+    def test_import_opml(self):
+        request = HTTPRequest(self.get_url('/opml/import'), method='POST',
+                              headers=HTTPHeaders({'Content-Type': 'multipart/form-data; boundary=1234'}), body="""
+--1234
+Content-Disposition: form-data; name="files"; filename="opmlFile.xml"
+Content-Type: application/xml
+
+%s
+--1234--
+        """.replace(b"\n", b"\r\n") % OPML_FILE)
+
+        self.http_client.fetch(request, self.stop)
+        response = self.wait()
+
+        self.assertEquals(200, response.code)
+        saved_feeds = self.feeds_repository.get_feeds('bruno')
+        self.assertEqual(2, len(saved_feeds))
+
+        self.assertEqual(u'Mike Cohn\'s Blog - Succeeding With Agile®', saved_feeds[0]['title'])
+
+        self.assertEqual('You Are Not So Smart', saved_feeds[1]['title'])
+        self.assertEqual('http://youarenotsosmart.com/feed/', saved_feeds[1]['url'])
+        self.assertEqual('http://youarenotsosmart.com', saved_feeds[1]['main_url'])
+
+
 FEED_HEADER = """
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:wfw="http://wellformedweb.org/CommentAPI/"
@@ -78,4 +115,22 @@ FEED_HEADER = """
 FEED_FOOTER = """
 </channel>
 </rss>
+"""
+
+OPML_FILE = """
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="1.0">
+    <head>
+        <title>Abonnements de bam dans Google Reader</title>
+    </head>
+    <body>
+        <outline text="Mike Cohn's Blog - Succeeding With Agile®"
+            title="Mike Cohn's Blog - Succeeding With Agile®" type="rss"
+            xmlUrl="http://blog.mountaingoatsoftware.com/feed" htmlUrl="http://blog.mountaingoatsoftware.com"/>
+
+        <outline text="You Are Not So Smart"
+            title="You Are Not So Smart" type="rss"
+            xmlUrl="http://youarenotsosmart.com/feed/" htmlUrl="http://youarenotsosmart.com"/>
+    </body>
+</opml>
 """

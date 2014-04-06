@@ -3,5 +3,6 @@ elasticsearch
 tornado
 twisted
 pymongo
-nose
+lxml
 # testing
+nose

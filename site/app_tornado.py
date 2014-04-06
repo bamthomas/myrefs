@@ -9,6 +9,7 @@ from tornado.ioloop import IOLoop
 from tornado.web import asynchronous
 from tornado.gen import coroutine
 from utils import json_encode, get_unread_entries
+from lxml import etree
 
 
 class RssFeedsHandler(tornado.web.RequestHandler):
@@ -28,6 +29,17 @@ class RssFeedsHandler(tornado.web.RequestHandler):
     def handle_feed_insert(self, rss_feed_url, response):
         rss = feedparser.parse(response.body)
         self.rss_feeds.insert_feed('bruno', {'url': rss_feed_url, 'main_url': rss.feed.link, 'title': rss.feed.title})
+
+
+class OpmlHandler(tornado.web.RequestHandler):
+    def initialize(self, rss_feeds):
+        self.rss_feeds = rss_feeds
+
+    def post(self, *args, **kwargs):
+        opml_file = self.request.files['files'][0]
+        opml_content = etree.fromstring(opml_file['body'].strip())
+        for feed in opml_content.iterfind(".//outline"):
+            self.rss_feeds.insert_feed('bruno', {'url': feed.get('xmlUrl'), 'main_url': feed.get('htmlUrl'), 'title': feed.get('title')})
 
 
 class ArticleHandler(tornado.web.RequestHandler):
@@ -65,6 +77,7 @@ if __name__ == "__main__":
         (r'/static/(.*)', tornado.web.StaticFileHandler, {'path': os.path.join(os.getcwd() + '/static')}),
         (r'/rssfeeds', RssFeedsHandler, {'rss_feeds': rss_feeds_repository}),
         (r'/updatefeeds', CheckRssFeedsHandlder, {'rss_feeds': rss_feeds_repository}),
+        (r'/opml/import', OpmlHandler, {'rss_feeds': rss_feeds_repository}),
         (r'/article', ArticleHandler, {'rss_feeds': rss_feeds_repository}),
     ])
     application.listen(8888)
