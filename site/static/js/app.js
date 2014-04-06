@@ -37,6 +37,17 @@ var app = app || {};
         }
     });
 
+    app.fileSelected = function () {
+        var file = document.getElementById('opmlFile').files[0];
+        if (file) {
+            var xhr = new XMLHttpRequest();
+            var fd = new FormData();
+            fd.append("opmlFile", document.getElementById('opmlFile').files[0]);
+            xhr.open("POST", '/opml/import');
+            xhr.send(fd);
+        }
+    };
+
     app.ArticleView = Backbone.View.extend({
         tagName : 'div',
         template: _.template('<%=body%>'),

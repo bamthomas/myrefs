@@ -80,7 +80,7 @@ class TestImportOpmlFile(AsyncHTTPTestCase):
         request = HTTPRequest(self.get_url('/opml/import'), method='POST',
                               headers=HTTPHeaders({'Content-Type': 'multipart/form-data; boundary=1234'}), body="""
 --1234
-Content-Disposition: form-data; name="files"; filename="opmlFile.xml"
+Content-Disposition: form-data; name="opmlFile"; filename="opmlFile.xml"
 Content-Type: application/xml
 
 %s

@@ -36,7 +36,7 @@ class OpmlHandler(tornado.web.RequestHandler):
         self.rss_feeds = rss_feeds
 
     def post(self, *args, **kwargs):
-        opml_file = self.request.files['files'][0]
+        opml_file = self.request.files['opmlFile'][0]
         opml_content = etree.fromstring(opml_file['body'].strip())
         for feed in opml_content.iterfind(".//outline"):
             self.rss_feeds.insert_feed('bruno', {'url': feed.get('xmlUrl'), 'main_url': feed.get('htmlUrl'), 'title': feed.get('title')})

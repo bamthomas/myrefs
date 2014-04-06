@@ -40,7 +40,7 @@
             </div>
             <div class="col-lg-6">
                 <form id="opml" enctype="multipart/form-data" method="post" action="/opml/upload">
-                    <input type="file" name="opmlFile" id="opmlFile" class="form-control" />
+                    <input type="file" id="opmlFile" onchange="app.fileSelected();" />
                 </form>
             </div>
         </div>
